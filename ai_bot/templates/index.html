@@ -1,0 +1,433 @@
+{% load static %}
+<!doctype html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AI Chat</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:system-ui,Arial;
+}
+
+body{
+display:flex;
+height:100vh;
+background:#f3f4f6;
+overflow:hidden;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:260px;
+background:#111827;
+color:white;
+display:flex;
+flex-direction:column;
+transition:.3s;
+}
+
+.sidebar-header{
+padding:15px;
+border-bottom:1px solid #374151;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.close-btn{
+display:none;
+background:none;
+border:none;
+color:white;
+font-size:20px;
+cursor:pointer;
+}
+
+/* NEW CHAT */
+
+.new-chat{
+background:#2563eb;
+margin:12px;
+padding:12px;
+border-radius:10px;
+text-align:center;
+transition:.25s;
+font-weight:500;
+}
+
+.new-chat:hover{
+background:#1d4ed8;
+transform:translateY(-1px);
+}
+
+.new-chat a{
+color:white;
+text-decoration:none;
+}
+
+/* HISTORY */
+
+.chat-history{
+flex:1;
+overflow-y:auto;
+padding:10px;
+}
+
+/* CHAT ITEM */
+
+.chat-item{
+position:relative;
+background:#1f2937;
+padding:12px 40px 12px 12px;
+border-radius:8px;
+margin-bottom:10px;
+transition:.25s;
+}
+
+.chat-item:hover{
+background:#374151;
+transform:translateX(3px);
+}
+
+/* CHAT TITLE */
+
+.chat-item a{
+color:white;
+text-decoration:none;
+}
+
+/* DELETE BUTTON */
+
+.delete-btn{
+position:absolute;
+right:12px;
+top:50%;
+transform:translateY(-50%);
+color:#ef4444;
+font-size:18px;
+text-decoration:none;
+cursor:pointer;
+}
+
+/* CHAT AREA */
+
+.chat-container{
+flex:1;
+display:flex;
+flex-direction:column;
+position:relative;
+overflow:hidden;
+
+background:linear-gradient(135deg,#f8fafc,#eef2f7);
+}
+
+/* animated blobs */
+
+.chat-container::before,
+.chat-container::after{
+content:"";
+position:absolute;
+width:420px;
+height:420px;
+border-radius:50%;
+filter:blur(120px);
+opacity:.35;
+animation:float 18s infinite alternate;
+}
+
+.chat-container::before{
+background:#2563eb;
+top:-120px;
+left:-120px;
+}
+
+.chat-container::after{
+background:#9333ea;
+bottom:-140px;
+right:-120px;
+animation-delay:6s;
+}
+
+/* floating animation */
+
+@keyframes float{
+0%{
+transform:translate(0,0) scale(1);
+}
+100%{
+transform:translate(80px,-60px) scale(1.2);
+}
+}
+
+/* HEADER */
+
+.chat-header{
+padding:16px;
+background:white;
+border-bottom:1px solid #e5e7eb;
+display:flex;
+align-items:center;
+gap:12px;
+z-index:1;
+}
+
+.menu-btn{
+font-size:20px;
+cursor:pointer;
+display:none;
+}
+
+/* MESSAGES */
+
+.messages{
+flex:1;
+padding:22px;
+overflow-y:auto;
+display:flex;
+flex-direction:column;
+gap:12px;
+z-index:1;
+}
+
+/* MESSAGE ROW */
+
+.message{
+display:flex;
+}
+
+.message.user{
+justify-content:flex-end;
+}
+
+.message.bot{
+justify-content:flex-start;
+}
+
+/* MESSAGE BUBBLE */
+
+.bubble{
+padding:10px 14px;
+border-radius:14px;
+max-width:70%;
+width:fit-content;
+word-wrap:break-word;
+animation:fadeIn .25s ease;
+}
+
+/* USER */
+
+.user .bubble{
+background:#2563eb;
+color:white;
+}
+
+/* BOT */
+
+.bot .bubble{
+background:#e5e7eb;
+color:#111;
+}
+
+/* MESSAGE ANIMATION */
+
+@keyframes fadeIn{
+from{
+opacity:0;
+transform:translateY(6px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+/* INPUT */
+
+.chat-input{
+padding:15px;
+background:white;
+border-top:1px solid #e5e7eb;
+display:flex;
+gap:10px;
+z-index:1;
+}
+
+.chat-input input{
+flex:1;
+padding:10px;
+border:1px solid #d1d5db;
+border-radius:6px;
+outline:none;
+}
+
+.chat-input button{
+background:#2563eb;
+color:white;
+border:none;
+padding:10px 20px;
+border-radius:6px;
+cursor:pointer;
+transition:.2s;
+}
+
+.chat-input button:hover{
+background:#1d4ed8;
+}
+
+/* OVERLAY */
+
+.overlay{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.3);
+display:none;
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+.sidebar{
+position:fixed;
+left:-260px;
+top:0;
+height:100%;
+z-index:1000;
+}
+
+.sidebar.active{
+left:0;
+}
+
+.menu-btn{
+display:block;
+}
+
+.close-btn{
+display:block;
+}
+
+.overlay.active{
+display:block;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+<!-- SIDEBAR -->
+
+<div class="sidebar" id="sidebar">
+
+<div class="sidebar-header">
+<span>Chats</span>
+<button class="close-btn" onclick="closeMenu()">✕</button>
+</div>
+
+<div class="new-chat">
+<a href="/?new=true">+ New Chat</a>
+</div>
+
+<div class="chat-history">
+
+{% for chat in conversations %}
+
+<div class="chat-item">
+
+<a href="/?chat={{chat.id}}">
+{{ chat.title|slice:":22" }}{% if chat.title|length > 22 %}...{% endif %}
+</a>
+
+<a class="delete-btn" href="/?delete={{chat.id}}">🗑</a>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</div>
+
+<!-- CHAT AREA -->
+
+<div class="chat-container">
+
+<div class="chat-header">
+<span class="menu-btn" onclick="openMenu()">☰</span>
+<h3>AI Chat</h3>
+</div>
+
+<div class="messages" id="messages">
+
+{% for msg in messages %}
+
+<div class="message user">
+<div class="bubble">
+{{msg.user_message}}
+</div>
+</div>
+
+<div class="message bot">
+<div class="bubble">
+{{msg.bot_response}}
+</div>
+</div>
+
+{% endfor %}
+
+</div>
+
+<form method="POST" class="chat-input">
+
+{% csrf_token %}
+
+<input type="text" name="message" placeholder="Type your message..." required>
+
+<button type="submit">Send</button>
+
+</form>
+
+</div>
+
+<script>
+
+const sidebar=document.getElementById("sidebar")
+const overlay=document.getElementById("overlay")
+
+function openMenu(){
+sidebar.classList.add("active")
+overlay.classList.add("active")
+}
+
+function closeMenu(){
+sidebar.classList.remove("active")
+overlay.classList.remove("active")
+}
+
+/* AUTO SCROLL */
+
+const messages=document.getElementById("messages")
+messages.scrollTop=messages.scrollHeight
+
+</script>
+
+</body>
+</html>
